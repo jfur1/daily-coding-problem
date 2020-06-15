@@ -20,8 +20,8 @@
 # Date: June 14, 2020
 # Implemenetation assisted by https://gist.github.com/rsheldiii/2993225
 
-WHITE = "white"
-BLACK = "black"
+WHITE = "White"
+BLACK = "Black"
 # Create a parent class -- Piece -- to be inherited by individual pieces 
 class Piece:
     def __init__(self, color, name):
@@ -29,9 +29,9 @@ class Piece:
         self.position = None
         self.color = color
 
-    # Check to see if a move is valid
+    # Check to see if a move from position start to end is valid
     def valid(self, board, start, end, color):
-        if end in self.availableMoves(board, start[0], start[1], color = color):
+        if end in self.availableMoves(board, start[0], start[1], color):
             return True
         return False
 
@@ -42,8 +42,8 @@ class Piece:
     # Returns a list of all possible moves 
     def returnMoves(self, board, x, y, intervals, color):
         answers = []
-        for i, j in intervals:
-            x2, y2 = x+i , y+i
+        for coord in intervals:
+            x2, y2 = x+coord[0] , y+coord[1]
             while self.inBounds(x2, y2):
                 if board[(x2, y2)] == None: answers.append((x2, y2))
                 elif board[(x2, y2)].color != color:
@@ -51,8 +51,8 @@ class Piece:
                     break
                 else:
                     break
-                x2, y2 = x2 + i, y2 + j
-            return answers
+                x2, y2 = x2 + coord[0], y2 + coord[1]
+        return answers
  
     # Checks if the piece is in a valid pos. on the board
     def inBounds(self, x, y):
@@ -62,7 +62,7 @@ class Piece:
 
     # Checks if a position is in conflict with any rules of the game
     def checkRules(self, board, x, y, color):
-        if self.inBounds(x, y) and ((board[(x,y)] == 0) or board[(x, y)].color != color):
+        if self.inBounds(x, y) and ((board[(x,y)] == None) or board[(x, y)].color != color):
             return True
         return False
 
@@ -91,7 +91,7 @@ class Rook(Piece):
 class Bishop(Piece):
     def availableMoves(self, board, x, y, color = None):
         if color is None : color = self.color
-        return self.returnMoves(board, x, y, color, diagonals)
+        return self.returnMoves(board, x, y, diagonals, color)
 
 class Queen(Piece):
     def availableMoves(self, board, x, y, color=None):
@@ -111,9 +111,11 @@ class Pawn(Piece):
     def availableMoves(self, board, x, y, color = None):
         if color is None: color = self.color
         answers = []
-        if(x+1, y + self.direction) in board and self.checkRules(board, x+1, y+self.direction, color) : answers.append((x+1, y+self.direction))
-        if(x-1, y+ self.direction) in board and self.checkRules(board, x-1, y+self.direction ,color) : answers.append((x-1, y+self.direction))
-        if(x, y+self.direction) not in board and color == self.color : answers.append((x, y+self.direction))
+        if(x+self.direction,y+1) in board and self.checkRules(board, x+1, y+self.direction, color) : answers.append((x+1, y+self.direction))
+        if(x+self.direction, y-1) in board and self.checkRules(board, x-1, y+self.direction ,color) : answers.append((x-1, y+self.direction))
+        if board[(x+self.direction, y)] == None : answers.append((x+self.direction, y))
+        if (board[(x+(self.direction*2), y)] == None) and (x == 1 or x == 6):
+            answers.append((x+(self.direction*2), y))
         return answers
 
 # Chess class for playing a game
@@ -130,7 +132,10 @@ class Chess:
         
     def printBoard(self):
         # for (i, j) in self.board:
+        print(self.turn + "'s' turn.")
+        letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
         for i in range(0, 8):
+            print(letters[i], '|  ', end='')
             for j in range(0, 8):
                 if(self.board[(i,j)] == None):
                     if(j%7 == 0) and (j != 0):
@@ -141,6 +146,10 @@ class Chess:
                     print('[', self.board[(i, j)].name, ']')
                 else:
                     print('[', self.board[(i, j)].name, '], ', end='')
+        print("----------------------------------------------------------")
+        for i in range(0, 8):
+            print('     ', i+1, end='')
+        print()
 
     def placePieces(self):
         for i in range(0, 8):
@@ -165,17 +174,62 @@ class Chess:
         kingDict = dict()
         pieces = {BLACK: [], WHITE: []}
         for pos, piece in self.board.items():
+            if piece == None:
+                continue
             if type(piece) == King:
                 kingDict[piece.color] = pos
-            print(piece)
+            #print(piece)
             pieces[piece.color].append((piece, pos))
         if(self.canSeeKing(kingDict[WHITE], pieces[BLACK])):
-            self.message = "White player is in check"
+            print("White player is in check")
+            return True
         if(self.canSeeKing(kingDict[BLACK], pieces[WHITE])):
-            self.message = "Black player is in check"
+            print("Black player is in check")
+            return True
+        return False
 
+    def play(self):
+        print("Welcome to Chess! Moves are entered w/ the following format: 'start end'. (i.e, 'b2 c2')")
+        while True:
+            self.printBoard()
+            self.message = ""
+            start, end = self.parseInput()
+            try:
+                target = self.board[start]
+            except:
+                print("Could not find piece; index might be out of range")
+                target = None
+            if target:
+                #print("Found: " + str(target))
+                if(target.color != self.turn):
+                    print("You are not allowed to move another player's piece!")
+                    continue
+                if target.valid(self.board, start, end, target.color):
+                    print("Valid Move.")
+                    self.board[end] = self.board[start]
+                    self.board[start] = None
+                    self.check()
+                    if(self.turn == BLACK):
+                        self.turn = WHITE
+                    else:
+                        self.turn = BLACK
+                else:
+                    print("Invalid move.") #+ str(target.availableMoves(self.board, start[0], start[1], target.color))
+                    print(target.availableMoves(self.board, start[0], start[1], target.color))
+            else:print("There is no piece to move at that space!")
+
+    def parseInput(self):
+        try:
+            a,b = input().split()
+            a = ((ord(a[0])-97), int(a[1])-1)
+            b = (ord(b[0])-97, int(b[1])-1)
+            #print(a,b)
+            return (a,b)
+        except:
+            print("error decoding input. please try again")
+            return((-1,-1),(-1,-1))
 
 uniDict = {BLACK : {Pawn : "♙", Rook : "♖", Knight : "♘", Bishop : "♗", King : "♔", Queen : "♕" },
             WHITE : {Pawn : "♟", Rook : "♜", Knight : "♞", Bishop : "♝", King : "♚", Queen : "♛" }}
 game = Chess()
-game.printBoard()
+game.play()
