@@ -111,11 +111,15 @@ class Pawn(Piece):
     def availableMoves(self, board, x, y, color = None):
         if color is None: color = self.color
         answers = []
-        if(x+self.direction,y+1) in board and self.checkRules(board, x+1, y+self.direction, color) : answers.append((x+1, y+self.direction))
-        if(x+self.direction, y-1) in board and self.checkRules(board, x-1, y+self.direction ,color) : answers.append((x-1, y+self.direction))
-        if board[(x+self.direction, y)] == None : answers.append((x+self.direction, y))
+        if self.inBounds(x+self.direction, y+1) and board[(x+self.direction, y+1)] != None and board[(x+self.direction, y+1)].color != color:
+             answers.append((x+self.direction,y+1))
+        if self.inBounds(x+self.direction, y-1) and board[(x+self.direction, y-1)] != None and board[(x+self.direction, y-1)].color != color: 
+            answers.append((x+self.direction, y-1))
+        if board[(x+self.direction, y)] == None and self.checkRules(board, x+self.direction, y, color):
+             answers.append((x+self.direction, y))
         if (board[(x+(self.direction*2), y)] == None) and (x == 1 or x == 6):
-            answers.append((x+(self.direction*2), y))
+            if self.checkRules(board, (x+(self.direction*2)), y, color):
+                answers.append((x+self.direction*2, y))
         return answers
 
 # Chess class for playing a game
@@ -132,7 +136,6 @@ class Chess:
         
     def printBoard(self):
         # for (i, j) in self.board:
-        print(self.turn + "'s' turn.")
         letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
         for i in range(0, 8):
             print(letters[i], '|  ', end='')
@@ -153,22 +156,25 @@ class Chess:
 
     def placePieces(self):
         for i in range(0, 8):
-            self.board[(1, i)] = Pawn(uniDict[WHITE][Pawn], WHITE, 1)
-            self.board[(6, i)] = Pawn(uniDict[BLACK][Pawn], BLACK, -1)
+            self.board[(1, i)] = Pawn(uniDict[BLACK][Pawn], BLACK, 1)
+            self.board[(6, i)] = Pawn(uniDict[WHITE][Pawn], WHITE, -1)
 
         pieces = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
         for i in range(0, 8):
-            self.board[(0, i)] = pieces[i](WHITE, uniDict[WHITE][pieces[i]])
-            self.board[(7, 7-i)] = pieces[i](BLACK, uniDict[BLACK][pieces[i]])
+            self.board[(0, i)] = pieces[i](BLACK, uniDict[BLACK][pieces[i]])
+            self.board[(7, i)] = pieces[i](WHITE, uniDict[WHITE][pieces[i]])
 
-        pieces.reverse()
+        #pieces.reverse()
 
+    # Returns a dictionary of pieces that can see the king
     # pieces = dict{ (piece, pos) }
     def canSeeKing(self, kingPos, pieces):
+        checkingPieces = []
         for piece, pos in pieces:
             if piece.valid(self.board, pos, kingPos, piece.color):
-                return True
+                checkingPieces.append((piece, pos))
+        return checkingPieces
 
     def check(self):
         kingDict = dict()
@@ -178,19 +184,75 @@ class Chess:
                 continue
             if type(piece) == King:
                 kingDict[piece.color] = pos
+                #king = piece
             #print(piece)
             pieces[piece.color].append((piece, pos))
-        if(self.canSeeKing(kingDict[WHITE], pieces[BLACK])):
+        checkingPieces = self.canSeeKing(kingDict[WHITE], pieces[BLACK])
+        if(checkingPieces != []):
+            if self.isCheckmate(kingDict[WHITE], pieces):
+                return True
             print("White player is in check")
             return True
-        if(self.canSeeKing(kingDict[BLACK], pieces[WHITE])):
+        checkingPieces = self.canSeeKing(kingDict[BLACK], pieces[WHITE])
+        if(checkingPieces != []):
+            if self.isCheckmate(kingDict[BLACK], pieces):
+                return True
             print("Black player is in check")
             return True
         return False
 
+    def doMove(self, piece, piecePos, move, color):
+        capturedPiece = None
+        if piece.valid(self.board, piecePos, move, color):
+            if(self.board[move] == None):
+                self.board[move] = piece
+                self.board[piecePos] = None
+            elif(self.board[move].color != self.turn):
+                capturedPiece = self.board[move]
+                self.board[move] = piece
+                self.board[piecePos] = None
+        return capturedPiece
+
+    def undoMove(self, piece, piecePos, originalPos, capturedPiece=None):
+        if(capturedPiece == None):                
+            self.board[originalPos] = piece
+            self.board[piecePos] = None
+        else:
+            self.board[originalPos] = piece
+            self.board[piecePos] = capturedPiece 
+        return piece, piecePos
+
+    def isCheckmate(self, kingPos, pieces):
+        validMoves = []
+        # # There are three ways of escaping check:
+        if self.turn == BLACK: color = WHITE
+        else: color = BLACK
+        # # 1. Moving your king to a non-attacked square
+        # # 2. Blocking the piece(s) delivering check
+        # # 3. Capturing the checking piece.
+        # New Idea: if for every move for player X, player Y can capture player X's king next turn, then player X is in checkmate
+        for piece, pos in pieces[color]:
+            for move in piece.availableMoves(self.board, pos[0], pos[1], color):
+                print("Move: ",piece, "from: ", pos)
+                print("To: ", move)
+                capturedPiece = self.doMove(piece, pos, move, color)
+                # if the move does not result in check, then the player is not in checkmate
+                if self.canSeeKing(kingPos, pieces[self.turn]) == []:
+                    piece, validMove = self.undoMove(piece, move, pos, capturedPiece)
+                    validMoves.append((piece, validMove))
+                    print("Valid moves to escape checkmate: ")
+                    print(validMoves)
+                    return False
+                # Move still results in check -- undo, then continue searching
+                self.undoMove(piece, move, pos, capturedPiece)
+        # Each move has been evaluated for each piece. Every possible move results in check => Checkmate!
+        print("Checkmate!", self.turn, "wins!")
+        return True           
+
     def play(self):
         print("Welcome to Chess! Moves are entered w/ the following format: 'start end'. (i.e, 'b2 c2')")
         while True:
+            print(self.turn + "'s' turn.")
             self.printBoard()
             self.message = ""
             start, end = self.parseInput()
@@ -208,7 +270,9 @@ class Chess:
                     print("Valid Move.")
                     self.board[end] = self.board[start]
                     self.board[start] = None
-                    self.check()
+                    if(self.check()):
+                        self.printBoard()
+                        return
                     if(self.turn == BLACK):
                         self.turn = WHITE
                     else:
@@ -229,7 +293,53 @@ class Chess:
             print("error decoding input. please try again")
             return((-1,-1),(-1,-1))
 
+    # Test case: Uses a 4-move checkmate game for testing.
+    def testCheckmate(self):
+        print("Welcome to Chess! Moves are entered w/ the following format: 'start end'. (i.e, 'b2 c2')")
+        moves = [("g6", "f6"), ("b5", "d5"), ("g7", "e7"), ("a4", "e8")]
+        i = 0
+        target = None
+        while True:
+            print(self.turn + "'s' turn.")
+            self.printBoard()
+            self.message = ""
+            if i < 4:
+                a, b = moves[i][0], moves[i][1]
+                a = ((ord(a[0])-97), int(a[1])-1)
+                b = (ord(b[0])-97, int(b[1])-1)
+                start, end = a, b
+                i += 1
+            else:
+                start, end = self.parseInput()
+            try:
+                target = self.board[start]
+            except:
+                print("Could not find piece; index might be out of range")
+                target = None
+            if target:
+                #print("Found: " + str(target))
+                if(target.color != self.turn):
+                    print("You are not allowed to move another player's piece!")
+                    continue
+                if target.valid(self.board, start, end, target.color):
+                    print("Valid Move.")
+                    self.board[end] = self.board[start]
+                    self.board[start] = None
+                    if(self.check()):
+                        self.printBoard()
+                        return
+                    if(self.turn == BLACK):
+                        self.turn = WHITE
+                    else:
+                        self.turn = BLACK
+                else:
+                    print("Invalid move.") #+ str(target.availableMoves(self.board, start[0], start[1], target.color))
+                    print(target.availableMoves(self.board, start[0], start[1], target.color))
+            else:print("There is no piece to move at that space!")
+
+
 uniDict = {BLACK : {Pawn : "♙", Rook : "♖", Knight : "♘", Bishop : "♗", King : "♔", Queen : "♕" },
             WHITE : {Pawn : "♟", Rook : "♜", Knight : "♞", Bishop : "♝", King : "♚", Queen : "♛" }}
 game = Chess()
-game.play()
+game.testCheckmate()
+#game.play()
