@@ -15,3 +15,5 @@
 
 # Author: John Furlong
 
+def kthRow(k):
+    pass
