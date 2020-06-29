@@ -16,4 +16,12 @@
 # Author: John Furlong
 
 def kthRow(k):
-    pass
+    line = [1]
+    k = k-1
+
+    for i in range(max(k, 0)):
+        line.append(int(line[i] * (k-i)/(i+1)))
+
+    return line
+
+print(kthRow(4))
