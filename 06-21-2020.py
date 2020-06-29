@@ -10,3 +10,4 @@
 # How can you keep track of pages that have already been visited?
 # How will you deal with your client machines being blacklisted?
 # How can you update your database when Wikipedia pages are added or updated?
+
