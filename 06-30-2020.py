@@ -9,5 +9,26 @@
 
 # Given the list of flights [('A', 'B'), ('A', 'C'), ('B', 'C'), ('C', 'A')] and starting airport 'A', 
 # you should return the list ['A', 'B', 'C', 'A', 'C'] even though ['A', 'C', 'A', 'B', 'C'] is also a valid itinerary.
-#  However, the first one is lexicographically smaller.
+# However, the first one is lexicographically smaller.
 
+def itinerary(flights, start):
+    prev = dict()
+    prev[start] = None
+
+    for origin, destination in flights:
+        prev[destination] = origin
+        start = destination
+
+    return path(prev, start)
+
+# Helper Function
+def path(previous, s):
+    if s is None:
+        return []
+    else:
+        return path(previous, previous[s]) + [s]
+
+# Test Cases
+flights = [('SFO', 'HKO'), ('YYZ', 'SFO'), ('YUL', 'YYZ'), ('HKO', 'ORD')]
+start = 'YUL'
+print(itinerary(flights, start))
