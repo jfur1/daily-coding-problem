@@ -5,20 +5,19 @@
 
 def balanced(str):
     low = high = 0
-    for i in range(0, len(str)):
-        if str[i] == ')':
-            high -= 1
-            if low > 0:
-                low -= 1
-        elif str[i] == '(':
-            high += 1
-            low += 1
-        elif str[i] == '*':
-            if low > 0:
-                low -= 1
-            high += 1
-    if low == 0: return True 
-    else: return False
+    for c in str:
+        low += 1 if c == '(' else -1
+        high += 1 if c != ')' else -1
+        if high < 0: break
+        low = max(low, 0)
+    return low == 0
 
-string = "((*"
-print(balanced(string))
+string = ")*("
+string2 = "(()*"
+string3 = "(*)"
+print(string, ':', balanced(string))
+print(string2, ':', balanced(string2))
+print(string3, ':', balanced(string3))
+
+# Time Complexity: O(n) where n is the length of the string
+# Space Complexity: O(1), the space used by the high and low pointers.
