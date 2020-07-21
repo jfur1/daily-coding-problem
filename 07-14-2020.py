@@ -9,3 +9,5 @@
 #      11    15
 # Return the nodes 5 and 15.
 
+def foo():
+    pass
