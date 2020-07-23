@@ -25,15 +25,17 @@ class GameOfLife:
 
     def __init__(self, cell_locations):
         self.board = dict()
-        self.topLeft = (100, 100)
-        self.bottomRight = (0, 0)
+        self.minRow = 100
+        self.minCol = 100
+        self.maxRow = 0
+        self.maxCol = 0
         # Only add cell locations -- infinite, so no need to add empty spaces
         for row, col in cell_locations:
             # Keep track of topLeft & bottomRight cells for printing
-            if(row+col > self.bottomRight[0] + self.bottomRight[1]):
-                self.bottomRight = (row, col)
-            if(row+col < self.topLeft[0] + self.topLeft[1]):
-                self.topLeft = (row, col)
+            if row < self.minRow: self.minRow = row
+            elif row > self.maxRow: self.maxRow = row
+            if col < self.minCol: self.minCol = col
+            elif col > self.maxCol: self.maxCol = col
 
             self.board[(row, col)] = Cell(row, col)
     
@@ -41,33 +43,28 @@ class GameOfLife:
     def checkForNeighbors(self, cell):
         delta_r = [-1, -1, 0, 1, 1, 1, 0, -1]
         delta_c = [0, 1, 1, 1, 0, -1, -1, -1]
-        adj = []
+        # Up to 8 adjacent nodes
         for i in range(8):
             row = cell.row + delta_r[i]
             col = cell.row + delta_c[i]
             if(row < 0 or col < 0): continue
-            if(self.board.get((row, col)) is None): continue
+            if self.board.get((row, col)) is None: continue
             if(self.board[(row, col)]):
-                adj.append((row, col))
-        cell.adj = adj
+                cell.adj.append((row, col))
         return
 
     # Infinite baord -- print cells from the top-leftmost live cell to bottom-rightmost live cell
     def printBoard(self):
-        for r in range(self.topLeft[0], self.bottomRight[0]):
+        for r in range(self.minRow, self.maxRow+1):
             print(r , '|\t', end='')
-            for c in range(self.topLeft[1], self.bottomRight[1]):
+            for c in range(self.minCol, self.maxCol+1):
                 if self.board.get((r, c)) is None:
                     print('[   ]', end='')
-                elif(self.board[(r, c)].living == True):
-                    print('[ * ]', end = '')
-                elif(self.board[(r, c)].living == False):
+                elif self.board[(r, c)].living:
+                    print('[ * ]', end ='')
+                elif not self.board[(r, c)].living:
                     print('[ . ]', end='')
             print()
-                    
-    # Called at each iteration of the "game" -- checks which cells should live/die
-    def turn(self):
-        pass
 
     # Driver function to simulate the game for nTurns
     def play(self, nTurns):
@@ -89,7 +86,6 @@ class GameOfLife:
                 elif(len(cell.adj) == 3) and not cell.living:
                     cell.living = True
                 # Live cells with 2 or 3 neighbors live -- No code needed
-            
 
 # Driver Code
 cell_locs = [ (0, 0), (1, 1), (1, 2), (2, 0), (2, 2), (2, 3), (3, 2), (3, 3), (4, 1), (4, 3), (4, 4)]
