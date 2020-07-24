@@ -1,4 +1,3 @@
-
 #  Daily Coding Problem
 # Good morning! Here's your coding interview problem for today.
 
