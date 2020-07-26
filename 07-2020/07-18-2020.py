@@ -35,10 +35,9 @@ def validate(arr):
     delta_x = [-1, -1, 0, 1, 1, 1, 0, -1]
     delta_y = [0, 1, 1, 1, 0, -1, -1, -1]
 
+    i = 0
     for line in arr:
-        node = Node(line[0], line[1], line[2])
-
-    
+        node = Node(line[0], line[1], line[2]0
 
 arr = [ ['A', 'N', 'B'],
         ['B', 'NE', 'C'], 
