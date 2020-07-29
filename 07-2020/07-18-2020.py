@@ -37,7 +37,8 @@ def validate(arr):
 
     i = 0
     for line in arr:
-        node = Node(line[0], line[1], line[2]0
+        node = Node(line[0], line[1], line[2])  
+        pass
 
 arr = [ ['A', 'N', 'B'],
         ['B', 'NE', 'C'], 
