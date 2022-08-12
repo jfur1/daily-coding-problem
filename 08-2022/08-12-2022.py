@@ -11,6 +11,9 @@
 # Brute Force: Nested loop to calculate product for each index
 # Runtime: O(N^2)
 # Aux Space: O(N)
+from re import L
+
+
 def transformArray(nums):
     newArr = []
     val = None
@@ -32,3 +35,19 @@ nums = [1, 2, 3, 4, 5]
 nums2 = [3, 2, 1]
 print('[1, 2, 3, 4, 5] => ',transformArray(nums))
 print('[3, 2, 1] => ',transformArray(nums2))
+
+# Optimization Goal < O(N^2)
+# Runtime: O(N)
+# Aux Space: O(N)
+def quickTransform(nums):
+    totalProduct = 1
+    newArr = []
+    for i in range(0, len(nums)):
+        totalProduct *= nums[i]
+    
+    for i in range(0, len(nums)):
+        newArr.append(int(totalProduct / nums[i]))
+
+    return newArr
+
+print("quickTransform([1, 2, 3, 4, 5]) ==> ", quickTransform(nums))
